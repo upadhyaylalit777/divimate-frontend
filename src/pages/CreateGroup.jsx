@@ -40,7 +40,7 @@ export default function CreateGroup() {
     setSuccessMessage("");
 
     try {
-      const res = await fetch("http://localhost:4000/groups", {
+      const res = await fetch("http://localhost:4000/api/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, userIds: selectedUsers }),

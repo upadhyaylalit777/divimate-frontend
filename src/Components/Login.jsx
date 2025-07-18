@@ -102,6 +102,11 @@ const Login = () => {
           password: formData.password
         });
       } else {
+        console.log("Registering with:", {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        });
         result = await register({
           name: formData.name,
           email: formData.email,
@@ -138,9 +143,10 @@ const Login = () => {
         });
       }
     } catch (error) {
+      console.error("An error occurred:", error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred',
+        description: error.message || 'An unexpected error occurred',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -166,17 +172,18 @@ const Login = () => {
               }
             </Text>
             
-            {/* Demo credentials notice */}
+            {/* Demo credentials notice
             {isLogin && (
               <Alert status="info" borderRadius="md">
-                <AlertIcon />
-                <Box>
+                {/* <AlertIcon /> */}
+                {/* <Box>
                   <Text fontSize="sm">
-                    Demo credentials: admin@example.com / password123
-                  </Text>
+                    {/* Demo credentials: admin@example.com / password123 */}
+                  {/* </Text>
                 </Box>
               </Alert>
-            )}
+
+            )} */} */} */}
             
             <Box as="form" onSubmit={handleSubmit} width="100%">
               <VStack spacing={4}>

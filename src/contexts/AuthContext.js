@@ -82,6 +82,8 @@ export const AuthProvider = ({ children }) => {
         setUser(response.user);
         setIsAuthenticated(true);
         return { success: true, user: response.user };
+      } else {
+        return { success: false, error: response.error };
       }
     } catch (error) {
       return { success: false, error: error.message };
@@ -97,6 +99,8 @@ export const AuthProvider = ({ children }) => {
         setUser(response.user);
         setIsAuthenticated(true);
         return { success: true, user: response.user };
+      } else {
+        return { success: false, error: response.error };
       }
     } catch (error) {
       return { success: false, error: error.message };
@@ -131,59 +135,58 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Mock API service (replace with your actual API)
+const API_URL = 'http://localhost:4000';
+
 const authService = {
   login: async (credentials) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (credentials.email === 'admin@example.com' && credentials.password === 'password123') {
-          const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNzM5NzQzMjIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-          
-          resolve({
-            success: true,
-            token: mockToken,
-            user: {
-              id: 1,
-              name: 'John Doe',
-              email: 'admin@example.com',
-              role: 'admin'
-            }
-          });
-        } else {
-          reject(new Error('Invalid credentials'));
-        }
-      }, 1000);
-    });
+    try {
+      const response = await fetch(`${API_URL}/api/users/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      return { success: true, token: data.token, user: data.user };
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   },
-  
+
   register: async (userData) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (userData.email && userData.password && userData.name) {
-          const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE3Mzk3NDMyMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
-          
-          resolve({
-            success: true,
-            token: mockToken,
-            user: {
-              id: 2,
-              name: userData.name,
-              email: userData.email,
-              role: 'user'
-            }
-          });
-        } else {
-          reject(new Error('All fields are required'));
-        }
-      }, 1000);
-    });
+    try {
+      const response = await fetch(`${API_URL}/api/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Registration failed:', data);
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      return { success: true, token: data.token, user: data.user };
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
   },
-  
+
   logout: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({ success: true });
-      }, 500);
-    });
-  }
+    // No backend endpoint for logout, so we just resolve
+    return Promise.resolve({ success: true });
+  },
 };
