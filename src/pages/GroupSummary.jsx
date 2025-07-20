@@ -21,19 +21,25 @@ import {
   ModalBody,
   ModalCloseButton,
   useDisclosure,
-  Checkbox,
+  useToast,
+  Badge,
 } from "@chakra-ui/react";
+import { useAuth } from "../contexts/AuthContext"; // Import useAuth hook
 
 export default function GroupSummary() {
   const { groupId } = useParams();
+  const { user: currentUser, isAuthenticated } = useAuth(); // Use AuthContext
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [userToRemove, setUserToRemove] = useState("");
+  const [settlingTransaction, setSettlingTransaction] = useState(null);
+  const toast = useToast();
 
   const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose } = useDisclosure();
   const { isOpen: isRemoveOpen, onOpen: onRemoveOpen, onClose: onRemoveClose } = useDisclosure();
+  const { isOpen: isSettleOpen, onOpen: onSettleOpen, onClose: onSettleClose } = useDisclosure();
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -41,8 +47,29 @@ export default function GroupSummary() {
   const [message, setMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Get auth token - now using localStorage consistently
+  const getAuthToken = () => {
+    return localStorage.getItem('authToken');
+  };
+
+  // Create headers with auth token
+  const getHeaders = () => {
+    const token = getAuthToken();
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return headers;
+  };
+
   const fetchSummary = () => {
-    fetch(`http://localhost:4000/api/groups/${groupId}/summary`)
+    fetch(`http://localhost:4000/api/groups/${groupId}/summary`, {
+      headers: getHeaders()
+    })
       .then((res) => res.json())
       .then((data) => {
         setSummary(data);
@@ -51,11 +78,20 @@ export default function GroupSummary() {
       .catch((err) => {
         console.error(err);
         setLoading(false);
+        toast({
+          title: "Error",
+          description: "Failed to load group summary",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
       });
   };
 
   const fetchAllUsers = () => {
-    fetch("http://localhost:4000/api/users")
+    fetch("http://localhost:4000/api/users", {
+      headers: getHeaders()
+    })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -86,7 +122,7 @@ export default function GroupSummary() {
         `http://localhost:4000/api/groups/${groupId}/expenses`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getHeaders(),
           body: JSON.stringify({
             description,
             amount: parseFloat(amount),
@@ -105,8 +141,23 @@ export default function GroupSummary() {
       setAmount("");
       setPaidById("");
       fetchSummary();
+      
+      toast({
+        title: "Success",
+        description: "Expense added successfully!",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (err) {
       setMessage(err.message);
+      toast({
+        title: "Error",
+        description: err.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
@@ -119,7 +170,7 @@ export default function GroupSummary() {
     try {
       const res = await fetch(`http://localhost:4000/api/groups/${groupId}/members`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(),
         body: JSON.stringify({ userId: parseInt(selectedUser) }),
       });
 
@@ -132,6 +183,14 @@ export default function GroupSummary() {
       setSelectedUser("");
       fetchSummary();
       onAddClose();
+      
+      toast({
+        title: "Success",
+        description: "Member added successfully!",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (err) {
       setMessage(err.message);
     }
@@ -146,6 +205,7 @@ export default function GroupSummary() {
     try {
       const res = await fetch(`http://localhost:4000/api/groups/${groupId}/members/${userToRemove}`, {
         method: "DELETE",
+        headers: getHeaders(),
       });
 
       if (!res.ok) {
@@ -157,9 +217,63 @@ export default function GroupSummary() {
       setUserToRemove("");
       fetchSummary();
       onRemoveClose();
+      
+      toast({
+        title: "Success",
+        description: "Member removed successfully!",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (err) {
       setMessage(err.message);
     }
+  };
+
+  const handleSettleTransaction = async () => {
+    if (!settlingTransaction) return;
+
+    try {
+      const res = await fetch(`http://localhost:4000/api/groups/${groupId}/settle`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          fromUserId: settlingTransaction.fromUserId,
+          toUserId: settlingTransaction.toUserId,
+          amount: settlingTransaction.amount,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Something went wrong");
+      }
+
+      toast({
+        title: "Settlement Recorded",
+        description: `${settlingTransaction.from} → ${settlingTransaction.to}: ₹${settlingTransaction.amount}`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+      setSettlingTransaction(null);
+      fetchSummary();
+      onSettleClose();
+    } catch (err) {
+      toast({
+        title: "Settlement Failed",
+        description: err.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const openSettleModal = (transaction) => {
+    setSettlingTransaction(transaction);
+    onSettleOpen();
   };
 
   // Clear messages when modals close
@@ -177,6 +291,11 @@ export default function GroupSummary() {
     onRemoveClose();
   };
 
+  const handleSettleClose = () => {
+    setSettlingTransaction(null);
+    onSettleClose();
+  };
+
   if (loading) return <Box p={4}>Loading summary...</Box>;
   if (!summary) return <Box p={4}>Error loading group summary.</Box>;
 
@@ -187,6 +306,27 @@ export default function GroupSummary() {
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
+        {/* User Status - Now using currentUser from AuthContext */}
+        {currentUser && isAuthenticated ? (
+          <Card bg="green.50" borderColor="green.200" borderWidth={1}>
+            <CardBody>
+              <HStack>
+                <Badge colorScheme="green">Logged In</Badge>
+                <Text>Welcome, {currentUser.name}!</Text>
+              </HStack>
+            </CardBody>
+          </Card>
+        ) : (
+          <Card bg="orange.50" borderColor="orange.200" borderWidth={1}>
+            <CardBody>
+              <HStack>
+                <Badge colorScheme="orange">Guest Mode</Badge>
+                <Text>Log in to settle your debts</Text>
+              </HStack>
+            </CardBody>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <Heading size="lg">{summary.group}</Heading>
@@ -215,9 +355,30 @@ export default function GroupSummary() {
             <VStack align="stretch" spacing={2}>
               {summary.members.map((member) => (
                 <Box key={member.id} p={2} bg="gray.50" borderRadius="md">
-                  <Text>
-                    {member.name} — Paid: ₹{member.paid}, Owes: ₹{member.owes}, Balance: ₹{member.balance}
-                  </Text>
+                  <HStack justifyContent="space-between">
+                    <VStack align="start" spacing={0}>
+                      <HStack>
+                        <Text fontWeight="medium">{member.name}</Text>
+                        {currentUser && currentUser.id === member.id && (
+                          <Badge colorScheme="blue" size="sm">You</Badge>
+                        )}
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">
+                        Paid: ₹{member.paid} | Owes: ₹{member.owes}
+                      </Text>
+                    </VStack>
+                    <VStack align="end" spacing={0}>
+                      <Text 
+                        fontWeight="bold" 
+                        color={member.balance >= 0 ? "green.600" : "red.600"}
+                      >
+                        {member.balance >= 0 ? "+" : ""}₹{member.balance}
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        {member.balance >= 0 ? "is owed" : "owes"}
+                      </Text>
+                    </VStack>
+                  </HStack>
                 </Box>
               ))}
             </VStack>
@@ -227,15 +388,47 @@ export default function GroupSummary() {
         {summary.transactions.length > 0 && (
           <Card>
             <CardHeader>
-              <Heading size="md">Transactions</Heading>
+              <Heading size="md">Transactions to Settle</Heading>
             </CardHeader>
             <CardBody>
               <VStack align="stretch" spacing={2}>
                 {summary.transactions.map((tx, idx) => (
-                  <Box key={idx} p={2} bg="gray.50" borderRadius="md">
-                    <Text>
-                      {tx.from} → {tx.to}: ₹{tx.amount}
-                    </Text>
+                  <Box key={idx} p={3} bg="gray.50" borderRadius="md">
+                    <HStack justifyContent="space-between" alignItems="center">
+                      <VStack align="start" spacing={0}>
+                        <Text fontWeight="medium">
+                          {tx.from} → {tx.to}
+                        </Text>
+                        <Text fontSize="lg" color="red.600" fontWeight="bold">
+                          ₹{tx.amount}
+                        </Text>
+                      </VStack>
+                      <VStack align="end" spacing={2}>
+                        {tx.canSettle ? (
+                          <Button
+                            size="sm"
+                            colorScheme="green"
+                            onClick={() => openSettleModal(tx)}
+                          >
+                            Settle Debt
+                          </Button>
+                        ) : (
+                          <VStack align="end" spacing={0}>
+                            <Text fontSize="xs" color="gray.500">
+                              {currentUser ? "Not your debt" : "Login to settle"}
+                            </Text>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              colorScheme="gray"
+                              disabled
+                            >
+                              Can't Settle
+                            </Button>
+                          </VStack>
+                        )}
+                      </VStack>
+                    </HStack>
                   </Box>
                 ))}
               </VStack>
@@ -252,7 +445,7 @@ export default function GroupSummary() {
               <VStack spacing={4}>
                 <Input
                   type="text"
-                  placeholder="Description"
+                  placeholder="Description (e.g., Dinner at restaurant)"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
@@ -260,7 +453,8 @@ export default function GroupSummary() {
 
                 <Input
                   type="number"
-                  placeholder="Amount"
+                  step="0.01"
+                  placeholder="Amount (₹)"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   required
@@ -274,12 +468,12 @@ export default function GroupSummary() {
                 >
                   {summary.members.map((member) => (
                     <option key={member.id} value={member.id.toString()}>
-                      {member.name}
+                      {member.name} {currentUser && currentUser.id === member.id && "(You)"}
                     </option>
                   ))}
                 </Select>
 
-                <Button type="submit" colorScheme="blue" width="full">
+                <Button type="submit" colorScheme="blue" width="full" size="lg">
                   Add Expense
                 </Button>
 
@@ -304,7 +498,7 @@ export default function GroupSummary() {
       <Modal isOpen={isAddOpen} onClose={handleAddClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Add Member</ModalHeader>
+          <ModalHeader>Add Member to Group</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
@@ -320,6 +514,12 @@ export default function GroupSummary() {
                 ))}
               </Select>
 
+              {availableUsersToAdd.length === 0 && (
+                <Text color="gray.500" fontSize="sm" textAlign="center">
+                  All registered users are already members of this group
+                </Text>
+              )}
+
               {message && (
                 <Alert status="error" w="full">
                   {message}
@@ -328,7 +528,12 @@ export default function GroupSummary() {
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleAddMember} disabled={!selectedUser}>
+            <Button 
+              colorScheme="blue" 
+              mr={3} 
+              onClick={handleAddMember} 
+              disabled={!selectedUser}
+            >
               Add Member
             </Button>
             <Button variant="ghost" onClick={handleAddClose}>
@@ -342,10 +547,16 @@ export default function GroupSummary() {
       <Modal isOpen={isRemoveOpen} onClose={handleRemoveClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Remove Member</ModalHeader>
+          <ModalHeader>Remove Member from Group</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
+              <Alert status="warning">
+                <Text fontSize="sm">
+                  Members with expenses cannot be removed until all expenses are settled.
+                </Text>
+              </Alert>
+              
               <Select
                 placeholder="Select member to remove"
                 value={userToRemove}
@@ -353,7 +564,7 @@ export default function GroupSummary() {
               >
                 {summary.members.map((member) => (
                   <option key={member.id} value={member.id.toString()}>
-                    {member.name}
+                    {member.name} {currentUser && currentUser.id === member.id && "(You)"}
                   </option>
                 ))}
               </Select>
@@ -366,10 +577,66 @@ export default function GroupSummary() {
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={handleRemoveMember} disabled={!userToRemove}>
+            <Button 
+              colorScheme="red" 
+              mr={3} 
+              onClick={handleRemoveMember} 
+              disabled={!userToRemove}
+            >
               Remove Member
             </Button>
             <Button variant="ghost" onClick={handleRemoveClose}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Settle Transaction Modal */}
+      <Modal isOpen={isSettleOpen} onClose={handleSettleClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Confirm Settlement</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {settlingTransaction && (
+              <VStack spacing={4}>
+                <Alert status="info">
+                  <VStack align="start" spacing={1} w="full">
+                    <Text fontWeight="bold">You are about to record a settlement:</Text>
+                    <Text fontSize="sm">
+                      This will update the group balances to reflect that you have paid your debt.
+                    </Text>
+                  </VStack>
+                </Alert>
+                
+                <Box p={4} bg="gray.50" borderRadius="md" w="full" textAlign="center">
+                  <Text fontSize="lg" fontWeight="bold" mb={2}>
+                    {settlingTransaction.from} pays {settlingTransaction.to}
+                  </Text>
+                  <Text fontSize="2xl" color="green.600" fontWeight="bold">
+                    ₹{settlingTransaction.amount}
+                  </Text>
+                </Box>
+                
+                <Alert status="warning">
+                  <Text fontSize="sm">
+                    Make sure you have actually made this payment before confirming!
+                  </Text>
+                </Alert>
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button 
+              colorScheme="green" 
+              mr={3} 
+              onClick={handleSettleTransaction}
+              size="lg"
+            >
+              ✓ Confirm I Paid This
+            </Button>
+            <Button variant="ghost" onClick={handleSettleClose}>
               Cancel
             </Button>
           </ModalFooter>

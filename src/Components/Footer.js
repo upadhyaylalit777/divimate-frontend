@@ -1,52 +1,52 @@
 import React from 'react';
-import './Footer.css';
+import {
+  Box,
+  Container,
+  Flex,
+  Text,
+  VStack,
+  Heading,
+} from '@chakra-ui/react';
 
 const Footer = () => {
   return (
-    <footer className="footer">
-      <div className="footer-container">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h4>About Us</h4>
-            <p>Your trusted expense splitting app for groups and individuals.</p>
-          </div>
-          
-          <div className="footer-section">
-            <h4>Quick Links</h4>
-            <ul>
-              <li><a href="/">Home</a></li>
-              <li><a href="/create-user">Create User</a></li>
-              <li><a href="/create-group">Create Group</a></li>
-              <li><a href="/login">Login</a></li>
-            </ul>
-          </div>
-          
-          <div className="footer-section">
-            <h4>Support</h4>
-            <ul>
-              <li><a href="/help">Help Center</a></li>
-              <li><a href="/contact">Contact Us</a></li>
-              <li><a href="/privacy">Privacy Policy</a></li>
-              <li><a href="/terms">Terms of Service</a></li>
-            </ul>
-          </div>
-          
-          <div className="footer-section">
-            <h4>Connect</h4>
-            <div className="social-links">
-              <a href="#" aria-label="Facebook">📘</a>
-              <a href="#" aria-label="Twitter">🐦</a>
-              <a href="#" aria-label="Instagram">📷</a>
-              <a href="#" aria-label="LinkedIn">💼</a>
-            </div>
-          </div>
-        </div>
-        
-        <div className="footer-bottom">
-          <p>&copy; 2025 DiviMate.co. All rights reserved.</p>
-        </div>
-      </div>
-    </footer>
+    <Box
+      bg="black"
+      color="white"
+      mt="auto"
+    >
+      <Container maxW="6xl" py={10}>
+        {/* About Section */}
+        <VStack spacing={6} align="center" textAlign="center" mb={8}>
+          <Heading
+            as="h3"
+            size="lg"
+            bgGradient="linear(to-l, #7928CA, #FF0080)"
+            bgClip="text"
+            fontWeight="bold"
+          >
+            DiviMate
+          </Heading>
+          <Text fontSize="md" color="gray.300" lineHeight={1.8} maxW="md">
+            Your trusted expense splitting app for groups and individuals. 
+            Make sharing expenses simple, transparent, and hassle-free.
+          </Text>
+        </VStack>
+
+        {/* Bottom Section */}
+        <Flex
+          justify="center"
+          align="center"
+          pt={6}
+          borderTop="1px solid"
+          borderColor="gray.700"
+        >
+          <Text fontSize="sm" color="gray.400">
+            © 2025 DiviMate.co. All rights reserved.
+          </Text>
+        </Flex>
+      </Container>
+    </Box>
   );
 };
 

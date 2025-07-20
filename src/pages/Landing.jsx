@@ -44,7 +44,7 @@ const Landing = () => {
   const navigate = useNavigate();
   const toast = useToast();
   
-  // All useState hooks
+  // All useState hooks - must be at the top
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,80 +61,18 @@ const Landing = () => {
     paidById: user?.id || '' 
   });
 
-  // All useColorModeValue hooks
+  // All useColorModeValue hooks - must be at the top
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
   
-  // All useDisclosure hooks
+  // All useDisclosure hooks - must be at the top
   const { isOpen: isGroupModalOpen, onOpen: onGroupModalOpen, onClose: onGroupModalClose } = useDisclosure();
   const { isOpen: isExpenseModalOpen, onOpen: onExpenseModalOpen, onClose: onExpenseModalClose } = useDisclosure();
 
   // Fixed API URL to match backend routes
   const API_URL = 'http://localhost:4000/api';
 
-  // All useEffect hooks - must be called unconditionally
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user?.id) {
-        console.log('No user ID found, skipping data load');
-        setLoading(false);
-        return;
-      }
-      
-      console.log('Loading data for user:', user.id);
-      setLoading(true);
-      
-      try {
-        // Load groups and users in parallel
-        const [groupsData, usersData] = await Promise.all([
-          fetchGroups(),
-          fetchUsers()
-        ]);
-        
-        console.log('Loaded groups:', groupsData);
-        console.log('Loaded users:', usersData);
-        
-        // Calculate stats only if we have groups
-        if (groupsData && groupsData.length > 0) {
-          console.log('Calculating stats for', groupsData.length, 'groups');
-          await calculateStats(groupsData);
-        } else {
-          console.log('No groups found, setting default stats');
-          setStats({
-            totalGroups: 0,
-            totalExpenses: 0,
-            totalOwed: 0
-          });
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load data. Please refresh the page.',
-          status: 'error',
-          duration: 5000,
-          isClosable: true,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [user?.id]);
-
-  useEffect(() => {
-    setExpenseForm(prev => ({
-      ...prev,
-      paidById: user?.id || ''
-    }));
-  }, [user?.id]);
-
   // All function definitions
-  const handleGroupClick = (groupId) => {
-    navigate(`/group/${groupId}/summary`);
-  };
-
   const fetchGroups = async () => {
     try {
       if (!user?.id) {
@@ -281,6 +219,10 @@ const Landing = () => {
     });
   };
 
+  const handleGroupClick = (groupId) => {
+    navigate(`/group/${groupId}/summary`);
+  };
+
   const handleCreateGroup = async () => {
     try {
       if (!user?.id) {
@@ -412,7 +354,65 @@ const Landing = () => {
     }
   };
 
-  // Early return check - after all hooks
+  // All useEffect hooks - must be called unconditionally after other hooks
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user?.id) {
+        console.log('No user ID found, skipping data load');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Loading data for user:', user.id);
+      setLoading(true);
+      
+      try {
+        // Load groups and users in parallel
+        const [groupsData, usersData] = await Promise.all([
+          fetchGroups(),
+          fetchUsers()
+        ]);
+        
+        console.log('Loaded groups:', groupsData);
+        console.log('Loaded users:', usersData);
+        
+        // Calculate stats only if we have groups
+        if (groupsData && groupsData.length > 0) {
+          console.log('Calculating stats for', groupsData.length, 'groups');
+          await calculateStats(groupsData);
+        } else {
+          console.log('No groups found, setting default stats');
+          setStats({
+            totalGroups: 0,
+            totalExpenses: 0,
+            totalOwed: 0
+          });
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load data. Please refresh the page.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user?.id, toast]); // Added toast to dependencies
+
+  useEffect(() => {
+    setExpenseForm(prev => ({
+      ...prev,
+      paidById: user?.id || ''
+    }));
+  }, [user?.id]);
+
+  // Early return checks - AFTER all hooks have been called
   if (!user) {
     return (
       <Box bg={bgColor} minH="100vh" display="flex" alignItems="center" justifyContent="center">
@@ -437,27 +437,19 @@ const Landing = () => {
 
   return (
     <Box bg={bgColor} minH="100vh">
-      {/* Header */}
-      <Box bg={cardBg} shadow="sm" px={4} py={4}>
-        <Container maxW="container.xl">
-          <Flex justify="space-between" align="center">
+      <Container maxW="container.xl" py={8}>
+        {/* Welcome Section with Logout */}
+        <VStack spacing={6} mb={8}>
+          <Flex justify="space-between" align="center" w="100%">
             <Heading size="lg" color="blue.600">
-              Divimate
+               Your Dashboard
             </Heading>
             <HStack spacing={4}>
-              <Button variant="ghost">Groups</Button>
-              <Button variant="ghost">Expenses</Button>
-              <Button variant="ghost">Friends</Button>
-              <Button variant="ghost" onClick={handleLogout}>Logout</Button>
-              <Avatar size="sm" name={user?.name} />
+              {/* <Avatar size="sm" name={user?.name} />
+              <Button variant="ghost" onClick={handleLogout}>Logout</Button> */}
             </HStack>
           </Flex>
-        </Container>
-      </Box>
-
-      <Container maxW="container.xl" py={8}>
-        {/* Welcome Section */}
-        <VStack spacing={6} mb={8}>
+          
           <Heading size="xl" textAlign="center">
             Welcome back, {user?.name}!
           </Heading>
@@ -474,9 +466,9 @@ const Landing = () => {
           <Button leftIcon={<Box>➕</Box>} colorScheme="green" size="lg" onClick={onExpenseModalOpen}>
             Add Expense
           </Button>
-          <Button leftIcon={<Box>📊</Box>} variant="outline" size="lg">
+          {/* <Button leftIcon={<Box>📊</Box>} variant="outline" size="lg">
             View Reports
-          </Button>
+          </Button> */}
         </HStack>
 
         {/* Dashboard Grid */}

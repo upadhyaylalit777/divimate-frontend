@@ -1,17 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// JWT Token utilities
+// JWT Token utilities - UPDATED to use localStorage
 const tokenUtils = {
   setToken: (token) => {
-    window.authToken = token;
+    localStorage.setItem('authToken', token);
+    console.log('Token set in localStorage:', token ? 'Present' : 'Missing');
   },
   
   getToken: () => {
-    return window.authToken || null;
+    return localStorage.getItem('authToken');
   },
   
   removeToken: () => {
-    window.authToken = null;
+    localStorage.removeItem('authToken');
+    console.log('Token removed from localStorage');
   },
   
   isTokenExpired: (token) => {
@@ -58,9 +60,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check for existing token on app load
     const token = tokenUtils.getToken();
+    console.log('Checking existing token on load:', token ? 'Present' : 'Missing');
+    
     if (token && !tokenUtils.isTokenExpired(token)) {
       const payload = tokenUtils.getTokenPayload(token);
       if (payload) {
+        console.log('Setting user from existing token:', payload);
         setUser({
           id: payload.sub,
           name: payload.name,
@@ -78,7 +83,8 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.login(credentials);
       
       if (response.success) {
-        tokenUtils.setToken(response.token);
+        console.log('Login successful, setting token');
+        tokenUtils.setToken(response.token); // This will now use localStorage
         setUser(response.user);
         setIsAuthenticated(true);
         return { success: true, user: response.user };
@@ -95,7 +101,8 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(userData);
       
       if (response.success) {
-        tokenUtils.setToken(response.token);
+        console.log('Registration successful, setting token');
+        tokenUtils.setToken(response.token); // This will now use localStorage
         setUser(response.user);
         setIsAuthenticated(true);
         return { success: true, user: response.user };
@@ -110,7 +117,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authService.logout();
-      tokenUtils.removeToken();
+      tokenUtils.removeToken(); // This will now use localStorage
       setUser(null);
       setIsAuthenticated(false);
       return { success: true };
@@ -135,11 +142,14 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-const API_URL = 'http://localhost:4000';
+const API_URL = process.env.REACT_APP_DIVIMATE_API_URL || 'http://localhost:4000';
 
+// Updated authService that doesn't include auth headers (for login/register)
 const authService = {
   login: async (credentials) => {
     try {
+      console.log('Attempting login for:', credentials.email);
+      
       const response = await fetch(`${API_URL}/api/users/login`, {
         method: 'POST',
         headers: {
@@ -154,6 +164,7 @@ const authService = {
         throw new Error(data.error || 'Login failed');
       }
 
+      console.log('Login response received, token present:', !!data.token);
       return { success: true, token: data.token, user: data.user };
     } catch (error) {
       console.error('Login error:', error);
@@ -163,6 +174,8 @@ const authService = {
 
   register: async (userData) => {
     try {
+      console.log('Attempting registration for:', userData.email);
+      
       const response = await fetch(`${API_URL}/api/users`, {
         method: 'POST',
         headers: {
@@ -178,6 +191,7 @@ const authService = {
         throw new Error(data.error || 'Registration failed');
       }
 
+      console.log('Registration response received, token present:', !!data.token);
       return { success: true, token: data.token, user: data.user };
     } catch (error) {
       console.error('Registration error:', error);
@@ -186,7 +200,6 @@ const authService = {
   },
 
   logout: async () => {
-    // No backend endpoint for logout, so we just resolve
     return Promise.resolve({ success: true });
   },
 };

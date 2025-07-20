@@ -172,18 +172,17 @@ const Login = () => {
               }
             </Text>
             
-            {/* Demo credentials notice
+            {/* Demo credentials notice */}
             {isLogin && (
               <Alert status="info" borderRadius="md">
-                {/* <AlertIcon /> */}
-                {/* <Box>
+                <AlertIcon />
+                <Box>
                   <Text fontSize="sm">
-                    {/* Demo credentials: admin@example.com / password123 */}
-                  {/* </Text>
+                    Demo credentials: virat@gmail.com / virat1234
+                  </Text>
                 </Box>
               </Alert>
-
-            )} */} */} */}
+            )}
             
             <Box as="form" onSubmit={handleSubmit} width="100%">
               <VStack spacing={4}>

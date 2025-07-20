@@ -19,6 +19,7 @@ import {
   DrawerCloseButton,
   VStack,
   useToast,
+  Spacer,
 } from '@chakra-ui/react';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
@@ -72,7 +73,7 @@ const Navbar = ({ children }) => {
 
   const loggedInLinks = [
     { name: 'Dashboard', path: '/' },
-    { name: 'Create Group', path: '/create-group' },
+    // { name: 'Create Group', path: '/create-group' },
   ];
 
   const loggedOutLinks = [
@@ -97,7 +98,7 @@ const Navbar = ({ children }) => {
         <Container maxW="container.xl" px={{ base: 4, md: 6 }}>
           <Flex h={{ base: 16, md: 20 }} alignItems="center" justifyContent="space-between">
             {/* Logo */}
-            <Flex alignItems="center">
+            <Box>
               <Text 
                 fontSize={{ base: "xl", md: "2xl" }} 
                 fontWeight="800" 
@@ -107,7 +108,7 @@ const Navbar = ({ children }) => {
               >
                 DiviMate
               </Text>
-            </Flex>
+            </Box>
 
             {/* Desktop Navigation */}
             <HStack spacing={{ base: 4, md: 8 }} alignItems="center" display={{ base: 'none', md: 'flex' }}>
@@ -146,20 +147,24 @@ const Navbar = ({ children }) => {
             </HStack>
 
             {/* Mobile Menu Button */}
-            <IconButton
-              size={{ base: "sm", md: "md" }}
-              icon={<HamburgerIcon />}
-              aria-label="Open Menu"
-              display={{ md: 'none' }}
-              onClick={onOpen}
-              variant="ghost"
-              rounded="full"
-              _hover={{
-                bg: "gray.100",
-                transform: "scale(1.1)"
-              }}
-              transition="all 0.2s ease"
-            />
+            <Box display={{ md: 'none' }}>
+              <IconButton
+                size="sm"
+                icon={<HamburgerIcon />}
+                aria-label="Open Menu"
+                onClick={onOpen}
+                variant="ghost"
+                rounded="full"
+                minW="auto"
+                w="40px"
+                h="40px"
+                _hover={{
+                  bg: "gray.100",
+                  transform: "scale(1.1)"
+                }}
+                transition="all 0.2s ease"
+              />
+            </Box>
           </Flex>
         </Container>
       </Box>
