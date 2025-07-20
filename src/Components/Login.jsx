@@ -229,7 +229,7 @@ const Login = () => {
               </Alert>
             )}
             
-            {/* Debug Information Panel */}
+            {/* Debug Information Panel
             {showDebug && Object.keys(debugInfo).length > 0 && (
               <Accordion allowToggle width="100%">
                 <AccordionItem>
@@ -246,7 +246,7 @@ const Login = () => {
                   </AccordionPanel>
                 </AccordionItem>
               </Accordion>
-            )}
+            )} */}
             
             <Box as="form" onSubmit={handleSubmit} width="100%">
               <VStack spacing={4}>
@@ -377,11 +377,7 @@ const Login = () => {
               </Text>
             </Box>
             
-            {/* Additional debug info */}
-            <Box fontSize="xs" color="gray.500" textAlign="center">
-              <Text>Environment: {process.env.NODE_ENV}</Text>
-              <Text>API URL: {process.env.REACT_APP_DIVIMATE_API_URL || 'Not set'}</Text>
-            </Box>
+
           </VStack>
         </CardBody>
       </Card>
