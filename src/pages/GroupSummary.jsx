@@ -24,11 +24,11 @@ import {
   useToast,
   Badge,
 } from "@chakra-ui/react";
-import { useAuth } from "../contexts/AuthContext"; // Import useAuth hook
+import { useAuth, API_URL } from "../contexts/AuthContext"; // UPDATED: Import useAuth and API_URL
 
 export default function GroupSummary() {
   const { groupId } = useParams();
-  const { user: currentUser, isAuthenticated } = useAuth(); // Use AuthContext
+  const { user: currentUser, isAuthenticated } = useAuth();
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allUsers, setAllUsers] = useState([]);
@@ -47,12 +47,10 @@ export default function GroupSummary() {
   const [message, setMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Get auth token - now using localStorage consistently
   const getAuthToken = () => {
     return localStorage.getItem('authToken');
   };
 
-  // Create headers with auth token
   const getHeaders = () => {
     const token = getAuthToken();
     const headers = {
@@ -67,7 +65,8 @@ export default function GroupSummary() {
   };
 
   const fetchSummary = () => {
-    fetch(`http://localhost:4000/api/groups/${groupId}/summary`, {
+    // UPDATED: Use the dynamic API_URL
+    fetch(`${API_URL}/api/groups/${groupId}/summary`, {
       headers: getHeaders()
     })
       .then((res) => res.json())
@@ -89,7 +88,8 @@ export default function GroupSummary() {
   };
 
   const fetchAllUsers = () => {
-    fetch("http://localhost:4000/api/users", {
+    // UPDATED: Use the dynamic API_URL
+    fetch(`${API_URL}/api/users`, {
       headers: getHeaders()
     })
       .then((res) => res.json())
@@ -118,8 +118,9 @@ export default function GroupSummary() {
     setSuccessMessage("");
 
     try {
+      // UPDATED: Use the dynamic API_URL
       const res = await fetch(
-        `http://localhost:4000/api/groups/${groupId}/expenses`,
+        `${API_URL}/api/groups/${groupId}/expenses`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -168,7 +169,8 @@ export default function GroupSummary() {
     setSuccessMessage("");
 
     try {
-      const res = await fetch(`http://localhost:4000/api/groups/${groupId}/members`, {
+      // UPDATED: Use the dynamic API_URL
+      const res = await fetch(`${API_URL}/api/groups/${groupId}/members`, {
         method: "POST",
         headers: getHeaders(),
         body: JSON.stringify({ userId: parseInt(selectedUser) }),
@@ -203,7 +205,8 @@ export default function GroupSummary() {
     setSuccessMessage("");
 
     try {
-      const res = await fetch(`http://localhost:4000/api/groups/${groupId}/members/${userToRemove}`, {
+      // UPDATED: Use the dynamic API_URL
+      const res = await fetch(`${API_URL}/api/groups/${groupId}/members/${userToRemove}`, {
         method: "DELETE",
         headers: getHeaders(),
       });
@@ -234,7 +237,8 @@ export default function GroupSummary() {
     if (!settlingTransaction) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/api/groups/${groupId}/settle`, {
+      // UPDATED: Use the dynamic API_URL
+      const res = await fetch(`${API_URL}/api/groups/${groupId}/settle`, {
         method: "POST",
         headers: getHeaders(),
         body: JSON.stringify({
@@ -276,7 +280,6 @@ export default function GroupSummary() {
     onSettleOpen();
   };
 
-  // Clear messages when modals close
   const handleAddClose = () => {
     setMessage("");
     setSuccessMessage("");
@@ -306,7 +309,6 @@ export default function GroupSummary() {
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
-        {/* User Status - Now using currentUser from AuthContext */}
         {currentUser && isAuthenticated ? (
           <Card bg="green.50" borderColor="green.200" borderWidth={1}>
             <CardBody>

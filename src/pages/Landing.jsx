@@ -37,14 +37,14 @@ import {
   NumberInput,
   NumberInputField
 } from '@chakra-ui/react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, API_URL } from '../contexts/AuthContext'; // UPDATED: Import API_URL
 
 const Landing = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   
-  // All useState hooks - must be at the top
+  // All useState hooks
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,16 +61,13 @@ const Landing = () => {
     paidById: user?.id || '' 
   });
 
-  // All useColorModeValue hooks - must be at the top
+  // All useColorModeValue hooks
   const bgColor = useColorModeValue('gray.50', 'gray.900');
   const cardBg = useColorModeValue('white', 'gray.800');
   
-  // All useDisclosure hooks - must be at the top
+  // All useDisclosure hooks
   const { isOpen: isGroupModalOpen, onOpen: onGroupModalOpen, onClose: onGroupModalClose } = useDisclosure();
   const { isOpen: isExpenseModalOpen, onOpen: onExpenseModalOpen, onClose: onExpenseModalClose } = useDisclosure();
-
-  // Fixed API URL to match backend routes
-  const API_URL = 'http://localhost:4000/api';
 
   // All function definitions
   const fetchGroups = async () => {
@@ -81,7 +78,8 @@ const Landing = () => {
       }
       
       console.log('Fetching groups for user:', user.id);
-      const response = await fetch(`${API_URL}/groups?userId=${user.id}`);
+      // UPDATED: Use the dynamic API_URL
+      const response = await fetch(`${API_URL}/api/groups?userId=${user.id}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch groups: ${response.status} ${response.statusText}`);
@@ -108,7 +106,8 @@ const Landing = () => {
   const fetchUsers = async () => {
     try {
       console.log('Fetching users...');
-      const response = await fetch(`${API_URL}/users`);
+      // UPDATED: Use the dynamic API_URL
+      const response = await fetch(`${API_URL}/api/users`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch users: ${response.status} ${response.statusText}`);
@@ -149,7 +148,8 @@ const Landing = () => {
       try {
         console.log(`\n--- Processing Group: ${group.name} (ID: ${group.id}) ---`);
         
-        const response = await fetch(`${API_URL}/groups/${group.id}/summary`);
+        // UPDATED: Use the dynamic API_URL
+        const response = await fetch(`${API_URL}/api/groups/${group.id}/summary`);
         if (!response.ok) {
           console.error(`Failed to fetch summary for group ${group.id}:`, response.status);
           continue;
@@ -158,48 +158,16 @@ const Landing = () => {
         const summary = await response.json();
         console.log('Group summary:', summary);
         
-        // Add to total expenses
         totalExpenses += summary.totalExpense || 0;
         console.log(`Total expense for ${group.name}: ₹${summary.totalExpense || 0}`);
         
-        // Find user in members - handle both string and number IDs
-        const userBalance = summary.members.find(m => {
-          return parseInt(m.id) === parseInt(user.id);
-        });
-        
+        const userBalance = summary.members.find(m => parseInt(m.id) === parseInt(user.id));
         console.log(`User balance object for ${group.name}:`, userBalance);
         
-        if (userBalance) {
-          // If balance is negative, user owes money
-          if (userBalance.balance < 0) {
-            const amountOwed = Math.abs(userBalance.balance);
-            totalOwed += amountOwed;
-            console.log(`✓ User owes ₹${amountOwed} in ${group.name}`);
-            console.log(`✓ Total owed so far: ₹${totalOwed}`);
-          } else if (userBalance.balance > 0) {
-            console.log(`✓ User is owed ₹${userBalance.balance} in ${group.name}`);
-          } else {
-            console.log(`✓ User is settled (₹0) in ${group.name}`);
-          }
-          
-          // ALTERNATIVE: If balance is not working properly, calculate from transactions
-          if (summary.transactions && summary.transactions.length > 0) {
-            const userOwesFromTransactions = summary.transactions
-              .filter(tx => tx.from === user.name)
-              .reduce((sum, tx) => sum + tx.amount, 0);
-            
-            if (userOwesFromTransactions > 0) {
-              console.log(`📊 From transactions: User owes ₹${userOwesFromTransactions} in ${group.name}`);
-              // Use transaction-based calculation if balance seems incorrect
-              if (userBalance.balance === 0 && userOwesFromTransactions > 0) {
-                totalOwed += userOwesFromTransactions;
-                console.log(`🔄 Using transaction-based calculation. New total owed: ₹${totalOwed}`);
-              }
-            }
-          }
-        } else {
-          console.warn(`⚠️ User not found in group ${group.name} members`);
-          console.log('Available members:', summary.members.map(m => ({ id: m.id, name: m.name })));
+        if (userBalance && userBalance.balance < 0) {
+          const amountOwed = Math.abs(userBalance.balance);
+          totalOwed += amountOwed;
+          console.log(`✓ User owes ₹${amountOwed} in ${group.name}`);
         }
         
       } catch (error) {
@@ -238,7 +206,8 @@ const Landing = () => {
       
       const userIds = [user.id, ...groupForm.selectedUsers.map(u => parseInt(u))];
       
-      const response = await fetch(`${API_URL}/groups`, {
+      // UPDATED: Use the dynamic API_URL
+      const response = await fetch(`${API_URL}/api/groups`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -265,7 +234,6 @@ const Landing = () => {
       setGroupForm({ name: '', selectedUsers: [] });
       onGroupModalClose();
       
-      // Refresh data
       const groupsData = await fetchGroups();
       if (groupsData.length > 0) {
         await calculateStats(groupsData);
@@ -285,7 +253,8 @@ const Landing = () => {
 
   const handleAddExpense = async () => {
     try {
-      const response = await fetch(`${API_URL}/groups/${expenseForm.groupId}/expenses`, {
+      // UPDATED: Use the dynamic API_URL
+      const response = await fetch(`${API_URL}/api/groups/${expenseForm.groupId}/expenses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -318,7 +287,6 @@ const Landing = () => {
       });
       onExpenseModalClose();
       
-      // Refresh data
       const groupsData = await fetchGroups();
       if (groupsData.length > 0) {
         await calculateStats(groupsData);
@@ -354,7 +322,7 @@ const Landing = () => {
     }
   };
 
-  // All useEffect hooks - must be called unconditionally after other hooks
+  // useEffect hooks
   useEffect(() => {
     const loadData = async () => {
       if (!user?.id) {
@@ -367,16 +335,11 @@ const Landing = () => {
       setLoading(true);
       
       try {
-        // Load groups and users in parallel
         const [groupsData, usersData] = await Promise.all([
           fetchGroups(),
           fetchUsers()
         ]);
         
-        console.log('Loaded groups:', groupsData);
-        console.log('Loaded users:', usersData);
-        
-        // Calculate stats only if we have groups
         if (groupsData && groupsData.length > 0) {
           console.log('Calculating stats for', groupsData.length, 'groups');
           await calculateStats(groupsData);
@@ -403,7 +366,7 @@ const Landing = () => {
     };
 
     loadData();
-  }, [user?.id, toast]); // Added toast to dependencies
+  }, [user?.id, toast]);
 
   useEffect(() => {
     setExpenseForm(prev => ({
@@ -412,7 +375,7 @@ const Landing = () => {
     }));
   }, [user?.id]);
 
-  // Early return checks - AFTER all hooks have been called
+  // Early return checks
   if (!user) {
     return (
       <Box bg={bgColor} minH="100vh" display="flex" alignItems="center" justifyContent="center">
@@ -438,18 +401,13 @@ const Landing = () => {
   return (
     <Box bg={bgColor} minH="100vh">
       <Container maxW="container.xl" py={8}>
-        {/* Welcome Section with Logout */}
+        {/* Welcome Section */}
         <VStack spacing={6} mb={8}>
           <Flex justify="space-between" align="center" w="100%">
             <Heading size="lg" color="blue.600">
                Your Dashboard
             </Heading>
-            <HStack spacing={4}>
-              {/* <Avatar size="sm" name={user?.name} />
-              <Button variant="ghost" onClick={handleLogout}>Logout</Button> */}
-            </HStack>
           </Flex>
-          
           <Heading size="xl" textAlign="center">
             Welcome back, {user?.name}!
           </Heading>
@@ -466,9 +424,6 @@ const Landing = () => {
           <Button leftIcon={<Box>➕</Box>} colorScheme="green" size="lg" onClick={onExpenseModalOpen}>
             Add Expense
           </Button>
-          {/* <Button leftIcon={<Box>📊</Box>} variant="outline" size="lg">
-            View Reports
-          </Button> */}
         </HStack>
 
         {/* Dashboard Grid */}

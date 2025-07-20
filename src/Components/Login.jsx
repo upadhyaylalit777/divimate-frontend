@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Button, 
@@ -17,7 +17,13 @@ import {
   CardBody,
   InputGroup,
   InputRightElement,
-  IconButton
+  IconButton,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Code
 } from '@chakra-ui/react';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +32,7 @@ import { useNavigate } from 'react-router-dom';
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -35,9 +42,16 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login, register } = useAuth();
+  const { login, register, debugInfo } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  
+  // Show debug info in development or if there are issues
+  useEffect(() => {
+    const isDev = process.env.NODE_ENV === 'development';
+    const hasErrors = Object.keys(errors).length > 0;
+    setShowDebug(isDev || hasErrors);
+  }, [errors]);
   
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -96,6 +110,26 @@ const Login = () => {
     try {
       let result;
       
+      // Add device info for debugging
+      const deviceInfo = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+        language: navigator.language,
+        storageAvailable: (() => {
+          try {
+            localStorage.setItem('test', 'test');
+            localStorage.removeItem('test');
+            return true;
+          } catch (e) {
+            return false;
+          }
+        })()
+      };
+      
+      console.log('Device Info:', deviceInfo);
+      
       if (isLogin) {
         result = await login({
           email: formData.email,
@@ -114,6 +148,8 @@ const Login = () => {
         });
       }
       
+      console.log('Auth result:', result);
+      
       if (result.success) {
         toast({
           title: isLogin ? 'Login successful' : 'Registration successful',
@@ -123,8 +159,10 @@ const Login = () => {
           isClosable: true,
         });
         
-        // Navigate to home or intended page
-        navigate('/');
+        // Add a small delay to ensure state is updated
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
         
         // Reset form
         setFormData({
@@ -135,20 +173,27 @@ const Login = () => {
         });
       } else {
         toast({
-          title: 'Error',
-          description: result.error,
+          title: 'Authentication Error',
+          description: result.error || 'An authentication error occurred',
           status: 'error',
-          duration: 3000,
+          duration: 5000,
           isClosable: true,
+        });
+        
+        // Log detailed error info
+        console.error('Authentication failed:', {
+          error: result.error,
+          deviceInfo,
+          debugInfo
         });
       }
     } catch (error) {
       console.error("An error occurred:", error);
       toast({
-        title: 'Error',
-        description: error.message || 'An unexpected error occurred',
+        title: 'Network Error',
+        description: error.message || 'Please check your internet connection and try again',
         status: 'error',
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
     } finally {
@@ -182,6 +227,25 @@ const Login = () => {
                   </Text>
                 </Box>
               </Alert>
+            )}
+            
+            {/* Debug Information Panel */}
+            {showDebug && Object.keys(debugInfo).length > 0 && (
+              <Accordion allowToggle width="100%">
+                <AccordionItem>
+                  <AccordionButton bg="yellow.50">
+                    <Box flex="1" textAlign="left">
+                      <Text fontSize="sm" fontWeight="medium">Debug Information</Text>
+                    </Box>
+                    <AccordionIcon />
+                  </AccordionButton>
+                  <AccordionPanel pb={4}>
+                    <Code display="block" whiteSpace="pre" fontSize="xs" p={3}>
+                      {JSON.stringify(debugInfo, null, 2)}
+                    </Code>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
             )}
             
             <Box as="form" onSubmit={handleSubmit} width="100%">
@@ -311,6 +375,12 @@ const Login = () => {
                   {isLogin ? 'Sign up' : 'Sign in'}
                 </Link>
               </Text>
+            </Box>
+            
+            {/* Additional debug info */}
+            <Box fontSize="xs" color="gray.500" textAlign="center">
+              <Text>Environment: {process.env.NODE_ENV}</Text>
+              <Text>API URL: {process.env.REACT_APP_DIVIMATE_API_URL || 'Not set'}</Text>
             </Box>
           </VStack>
         </CardBody>
