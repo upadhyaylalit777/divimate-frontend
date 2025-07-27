@@ -229,24 +229,7 @@ const Login = () => {
               </Alert>
             )}
             
-            {/* Debug Information Panel
-            {showDebug && Object.keys(debugInfo).length > 0 && (
-              <Accordion allowToggle width="100%">
-                <AccordionItem>
-                  <AccordionButton bg="yellow.50">
-                    <Box flex="1" textAlign="left">
-                      <Text fontSize="sm" fontWeight="medium">Debug Information</Text>
-                    </Box>
-                    <AccordionIcon />
-                  </AccordionButton>
-                  <AccordionPanel pb={4}>
-                    <Code display="block" whiteSpace="pre" fontSize="xs" p={3}>
-                      {JSON.stringify(debugInfo, null, 2)}
-                    </Code>
-                  </AccordionPanel>
-                </AccordionItem>
-              </Accordion>
-            )} */}
+
             
             <Box as="form" onSubmit={handleSubmit} width="100%">
               <VStack spacing={4}>
